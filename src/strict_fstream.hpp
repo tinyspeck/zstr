@@ -6,10 +6,10 @@
 #include <cstring>
 #include <string>
 
-#ifndef _MSC_VER
-#define NOEXCEPT noexcept
-#else
+#if defined(_MSC_VER) && _MSC_VER < 1900
 #define NOEXCEPT
+#else
+#define NOEXCEPT noexcept
 #endif
 
 /**

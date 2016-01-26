@@ -123,7 +123,7 @@ public:
 
     istreambuf(const istreambuf &) = delete;
     istreambuf & operator = (const istreambuf &) = delete;
-#ifndef _WIN32
+#if !(defined(_MSC_VER) && _MSC_VER < 1900)
     istreambuf(istreambuf &&) = default;
     istreambuf & operator = (istreambuf &&) = default;
 #endif
@@ -242,7 +242,7 @@ public:
 
     ostreambuf(const ostreambuf &) = delete;
     ostreambuf & operator = (const ostreambuf &) = delete;
-#ifndef _WIN32
+#if !(defined(_MSC_VER) && _MSC_VER < 1900)
     ostreambuf(ostreambuf &&) = default;
     ostreambuf & operator = (ostreambuf &&) = default;
 #endif
