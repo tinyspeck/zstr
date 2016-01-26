@@ -52,7 +52,7 @@ public:
         _msg += zstrm_p->msg;
     }
     Exception(const std::string msg) : _msg(msg) {}
-    const char * what() const noexcept { return _msg.c_str(); }
+    const char * what() const NOEXCEPT { return _msg.c_str(); }
 private:
     std::string _msg;
 }; // class Exception
@@ -122,9 +122,11 @@ public:
     }
 
     istreambuf(const istreambuf &) = delete;
-    istreambuf(istreambuf &&) = default;
     istreambuf & operator = (const istreambuf &) = delete;
+#ifndef _WIN32
+    istreambuf(istreambuf &&) = default;
     istreambuf & operator = (istreambuf &&) = default;
+#endif
 
     virtual ~istreambuf()
     {
@@ -151,7 +153,7 @@ public:
                     if (in_buff_end == in_buff_start) break; // end of input
                 }
                 // auto detect if the stream contains text or deflate data
-                if (auto_detect and not auto_detect_run)
+                if (auto_detect && !auto_detect_run)
                 {
                     auto_detect_run = true;
                     unsigned char b0 = *reinterpret_cast< unsigned char * >(in_buff_start);
@@ -159,11 +161,11 @@ public:
                     // Ref:
                     // http://en.wikipedia.org/wiki/Gzip
                     // http://stackoverflow.com/questions/9050260/what-does-a-zlib-header-look-like
-                    is_text = not (in_buff_start + 2 <= in_buff_end
-                                   and ((b0 == 0x1F and b1 == 0x8B)         // gzip header
-                                        or (b0 == 0x78 and (b1 == 0x01      // zlib header
-                                                            or b1 == 0x9C
-                                                            or b1 == 0xDA))));
+                    is_text = !(in_buff_start + 2 <= in_buff_end
+                                   && ((b0 == 0x1F && b1 == 0x8B)         // gzip header
+                                        || (b0 == 0x78 && (b1 == 0x01      // zlib header
+                                                            || b1 == 0x9C
+                                                            || b1 == 0xDA))));
                 }
                 if (is_text)
                 {
@@ -177,14 +179,14 @@ public:
                 else
                 {
                     // run inflate() on input
-                    if (not zstrm_p) zstrm_p = new detail::z_stream_wrapper(true);
+                    if (!zstrm_p) zstrm_p = new detail::z_stream_wrapper(true);
                     zstrm_p->next_in = reinterpret_cast< decltype(zstrm_p->next_in) >(in_buff_start);
                     zstrm_p->avail_in = in_buff_end - in_buff_start;
                     zstrm_p->next_out = reinterpret_cast< decltype(zstrm_p->next_out) >(out_buff_free_start);
                     zstrm_p->avail_out = (out_buff + buff_size) - out_buff_free_start;
                     int ret = inflate(zstrm_p, Z_NO_FLUSH);
                     // process return code
-                    if (ret != Z_OK and ret != Z_STREAM_END) throw Exception(zstrm_p, ret);
+                    if (ret != Z_OK && ret != Z_STREAM_END) throw Exception(zstrm_p, ret);
                     // update in&out pointers following inflate()
                     in_buff_start = reinterpret_cast< decltype(in_buff_start) >(zstrm_p->next_in);
                     in_buff_end = in_buff_start + zstrm_p->avail_in;
@@ -239,9 +241,11 @@ public:
     }
 
     ostreambuf(const ostreambuf &) = delete;
-    ostreambuf(ostreambuf &&) = default;
     ostreambuf & operator = (const ostreambuf &) = delete;
+#ifndef _WIN32
+    ostreambuf(ostreambuf &&) = default;
     ostreambuf & operator = (ostreambuf &&) = default;
+#endif
 
     int deflate_loop(int flush)
     {
@@ -250,14 +254,14 @@ public:
             zstrm_p->next_out = reinterpret_cast< decltype(zstrm_p->next_out) >(out_buff);
             zstrm_p->avail_out = buff_size;
             int ret = deflate(zstrm_p, flush);
-            if (ret != Z_OK and ret != Z_STREAM_END and ret != Z_BUF_ERROR) throw Exception(zstrm_p, ret);
+            if (ret != Z_OK && ret != Z_STREAM_END && ret != Z_BUF_ERROR) throw Exception(zstrm_p, ret);
             std::streamsize sz = sbuf_p->sputn(out_buff, reinterpret_cast< decltype(out_buff) >(zstrm_p->next_out) - out_buff);
             if (sz != reinterpret_cast< decltype(out_buff) >(zstrm_p->next_out) - out_buff)
             {
                 // there was an error in the sink stream
                 return -1;
             }
-            if (ret == Z_STREAM_END or ret == Z_BUF_ERROR or sz == 0)
+            if (ret == Z_STREAM_END || ret == Z_BUF_ERROR || sz == 0)
             {
                 break;
             }
@@ -293,7 +297,7 @@ public:
     {
         // first, call overflow to clear in_buff
         overflow();
-        if (not pptr()) return -1;
+        if (!pptr()) return -1;
         // then, call deflate asking to finish the zlib stream
         zstrm_p->next_in = nullptr;
         zstrm_p->avail_in = 0;
